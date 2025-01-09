@@ -1,35 +1,54 @@
-from typing import Optional
+from typing import Optional  # 用于类型注解，Optional表示可选类型
 
+# 导入qtpylib库中的指标模块，用于技术指标计算
 import freqtrade.vendor.qtpylib.indicators as qtpylib
+# 导入numpy库，用于数值计算
 import numpy as np
+# 导入talib库中的抽象指标模块，用于技术分析
 import talib.abstract as ta
 
+# 从freqtrade.persistence模块中导入Trade类，用于交易记录管理
 from freqtrade.persistence import Trade
+# 从freqtrade.strategy.interface模块中导入IStrategy类，作为策略基类
 from freqtrade.strategy.interface import IStrategy
-from freqtrade.strategy import merge_informative_pair, DecimalParameter, stoploss_from_open, RealParameter
+# 从freqtrade.strategy模块中导入常用函数和参数类型
+from freqtrade.strategy import (
+    merge_informative_pair,  # 用于合并不同时间框架的数据
+    DecimalParameter,        # 用于定义小数类型的参数
+    stoploss_from_open,      # 用于计算相对于开仓价的止损
+    RealParameter            # 用于定义实数类型的参数
+)
+# 从pandas库中导入DataFrame和Series类，用于数据处理
 from pandas import DataFrame, Series
+# 从datetime库中导入datetime类，用于时间处理
 from datetime import datetime
 
-
+# 定义一个函数，用于计算布林带指标
 def bollinger_bands(stock_price, window_size, num_of_std):
+    # 计算滚动平均值
     rolling_mean = stock_price.rolling(window=window_size).mean()
+    # 计算滚动标准差
     rolling_std = stock_price.rolling(window=window_size).std()
+    # 计算下轨
     lower_band = rolling_mean - (rolling_std * num_of_std)
+    # 将NaN值替换为0并返回滚动平均值和下轨
     return np.nan_to_num(rolling_mean), np.nan_to_num(lower_band)
 
-
+# 定义一个函数，用于计算Heikin Ashi典型价格
 def ha_typical_price(bars):
+    # 计算Heikin Ashi典型价格
     res = (bars['ha_high'] + bars['ha_low'] + bars['ha_close']) / 3.
+    # 返回Heikin Ashi典型价格
     return Series(index=bars.index, data=res)
 
-
+# 定义一个类，继承自IStrategy类
 class ClucHAnix_5m(IStrategy):
     """
     PASTE OUTPUT FROM HYPEROPT HERE
     Can be overridden for specific sub-strategies (stake currencies) at the bottom.
     """
     
-    # hypered params
+    # 定义超参数
     buy_params = {
         "bbdelta_close": 0.01889,
         "bbdelta_tail": 0.72235,
@@ -118,7 +137,9 @@ class ClucHAnix_5m(IStrategy):
     pSL_2 = DecimalParameter(0.020, 0.070, default=0.040, decimals=3, space='sell', load=True)
 
     def informative_pairs(self):
+        # 获取当前白名单中的交易对
         pairs = self.dp.current_whitelist()
+        # 生成1小时时间框架的交易对列表
         informative_pairs = [(pair, '1h') for pair in pairs]
         return informative_pairs
 
@@ -148,10 +169,16 @@ class ClucHAnix_5m(IStrategy):
         if sl_profit >= current_profit:
             return -0.99
 
-        return stoploss_from_open(sl_profit, current_profit)
+        return stoploss_from_open(sl_profit)
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
-        # # Heikin Ashi Candles
+        """
+        填充技术指标数据
+        :param dataframe: 包含市场数据的DataFrame
+        :param metadata: 包含交易对元数据的字典
+        :return: 包含计算指标的DataFrame
+        """
+        # Heikin Ashi Candles
         heikinashi = qtpylib.heikinashi(dataframe)
         dataframe['ha_open'] = heikinashi['open']
         dataframe['ha_close'] = heikinashi['close']
