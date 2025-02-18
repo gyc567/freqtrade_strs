@@ -1,0 +1,17 @@
+---
+version: '3'
+services:
+  freqtrade:
+    image: freqtradeorg/freqtrade:stable
+    # 使用restart:always确保容器自动重启
+    restart: always
+    container_name: freqtrade
+    volumes:
+      - "./user_data:/freqtrade/user_data"
+      - "./config.json:/freqtrade/config.json"
+    # 命令配置
+    command: >
+      trade
+      --strategy RSICrossoverTrendStrategy
+      --config config.json
+      --db-url sqlite:////freqtrade/user_data/tradesv3.sqlite 

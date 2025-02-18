@@ -10,7 +10,7 @@ import warnings
 
 warnings.simplefilter(action="ignore", category=RuntimeWarning)
 
-class E0V1E_Bull(IStrategy):
+class RSICrossoverTrendStrategy_Bull(IStrategy):
     minimal_roi = {
         "0": 1
     }
